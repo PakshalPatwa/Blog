@@ -70,7 +70,7 @@ export default function PostPage({ params }: PageProps) {
 
   if (!post) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-zinc-50 to-zinc-100">
         <div className="text-center">
           <h1 className="text-4xl font-bold text-zinc-800 mb-4">404 - Post Not Found</h1>
           <p className="text-zinc-600 mb-8">The blog post you're looking for doesn't exist.</p>
@@ -106,17 +106,17 @@ export default function PostPage({ params }: PageProps) {
         </div>
       </nav>
 
-      <div className="w-[100%] h-[100%] text-white flex flex-col relative overflow-hidden group">
+      <div className="w-full h-full text-white flex flex-col relative overflow-hidden group">
 
         {/* Left Panel - Fixed on Desktop, Top on Mobile */}
-        <div className="w-[100%] h-[100%] text-white flex flex-col relative overflow-hidden group">
+        <div className="w-full h-full text-white flex flex-col relative overflow-hidden group">
           {/* Background Image */}
           <div className="absolute inset-0 z-0">
             {post.image?.startsWith('data:image') ? (
               <img
                 src={post.image}
                 alt={post.title}
-                className="w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
+                className="w-full h-full object-cover opacity-60 transition-transform duration-700"
               />
             ) : (
               <Image
@@ -127,7 +127,7 @@ export default function PostPage({ params }: PageProps) {
                 priority
               />
             )}
-            <div className="absolute inset-0 bg-gradient-to-b from-zinc-900/30 via-zinc-900/60 to-zinc-900" />
+            <div className="absolute inset-0 bg-linear-to-b from-zinc-900/30 via-zinc-900/60 to-zinc-900" />
           </div>
 
           {/* Content Container */}
@@ -199,9 +199,9 @@ export default function PostPage({ params }: PageProps) {
         </div>
 
         {/* Author Card */}
-        <div className="max-w-6xl mx-auto mt-12 bg-gradient-to-br from-zinc-900 to-zinc-800 rounded-2xl shadow-xl p-8 text-white">
+        <div className="max-w-6xl mx-auto mt-12 bg-linear-to-br from-zinc-900 to-zinc-800 rounded-2xl shadow-xl p-8 text-white">
           <div className="flex items-start gap-6">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold flex-shrink-0">
+            <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shrink-0">
               {post.author.charAt(0)}
             </div>
             <div>

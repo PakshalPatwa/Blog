@@ -12,15 +12,40 @@ const loginpage = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const submit = async (e: any) => {
+ const submit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    router.push("/");
+
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      // SAVE TOKEN
+      localStorage.setItem("token", data.token);
+
+      alert("Login successful");
+      router.push("/");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="max-w-md mx-auto mt-15 border border-white/10 bg-transparent p-6 rounded shadow">
-      <h2 className="text-2xl font-semibold mb-4">Blog Page Login</h2>
+      <h2 className="text-2xl font-semibold mb-4">Blog Login</h2>
 
       <form onSubmit={submit} className="flex flex-col gap-3">
 

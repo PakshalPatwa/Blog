@@ -1,66 +1,60 @@
 "use client";
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react'
+
+import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 
 const CreatePostpage = () => {
   const [title, setTitle] = useState("");
-  const [desc, setDesc] = useState("");
+  const [content, setContent] = useState("");
   const [author, setAuthor] = useState("");
   const [date, setDate] = useState("");
   const [readTime, setReadTime] = useState("");
-  const [preview, setPreview] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [image, setImage] = useState(null);
+  const [image, setImage] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const router = useRouter();
 
-  const handleImage = (e: any) => {
+  // IMAGE PREVIEW
+  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (selected) {
-      setFile(selected);
+      setImage(selected);
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setPreview(base64String);
-      };
+      reader.onloadend = () => setPreview(reader.result as string);
       reader.readAsDataURL(selected);
     }
   };
 
-  const handleSubmit = () => {
-    if (!title || !desc || !author || !date || !readTime) {
-      alert("Please fill in all fields");
+  // HANDLE SUBMIT
+  const handleSubmit = async() => {
+    if (!title || !content || !author || !date || !readTime || !image) {
+      alert("All fields required");
       return;
     }
 
-    // Get existing posts from localStorage
-    const existingPosts = JSON.parse(localStorage.getItem("blogPosts") || "[]");
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("content", content);
+    formData.append("author", author);
+    formData.append("date", date);
+    formData.append("readTime", readTime);
+    formData.append("image", image);
 
-    // Generate unique ID
-    const newId = existingPosts.length > 0
-      ? Math.max(...existingPosts.map((p: any) => p.id)) + 1
-      : 5;
+    const res = await fetch("http://localhost:5000/api/posts", {
+      method: "POST",
+      body: formData,
+    });
 
-    // Create new post
-    const newPost = {
-      id: newId,
-      title: title,
-      description: desc,
-      image: preview || "Portfolio1.png",
-      author: author,
-      date: date,
-      readTime: readTime,
-      content: desc,
-    };
+    const data = await res.json();
 
-    // Add new post to beginning of array
-    const updatedPosts = [newPost, ...existingPosts];
+    if (!res.ok) {
+      alert(data.message);
+      return;
+    }
 
-    // Save to localStorage
-    localStorage.setItem("blogPosts", JSON.stringify(updatedPosts));
-
-    alert("Post Created Successfully!");
-    router.push("/");
+    alert("Post Created Successfully");
+      router.push("/");
   };
+
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-4">
@@ -78,8 +72,8 @@ const CreatePostpage = () => {
         placeholder="Description"
         rows={5}
         className="w-full p-3 border rounded"
-        value={desc}
-        onChange={(e) => setDesc(e.target.value)}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
       />
 
       <input
@@ -108,10 +102,9 @@ const CreatePostpage = () => {
 
       <input type="file" accept="image/*" onChange={handleImage} />
 
-      {image && (
-        <img src={image} className="w-full h-60 object-cover rounded" />
+      {preview && (
+        <img src={preview} className="w-60 h-40 object-cover rounded" />
       )}
-      {preview && <img src={preview} className="w-60 rounded" />}
 
       <button
         onClick={handleSubmit}
@@ -120,7 +113,7 @@ const CreatePostpage = () => {
         Create Post
       </button>
     </div>
-  )
-}
+  );
+};
 
-export default CreatePostpage
+export default CreatePostpage;
