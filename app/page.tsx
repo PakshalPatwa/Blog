@@ -42,6 +42,15 @@ const dummyPosts = [
     date: "Dec 12, 2025",
     readTime: "8 min read",
   },
+  {
+    id: 5,
+    title: "Blog Post 5",
+    description: "More dummy content for the UI",
+    image: "Portfolio4.png",
+    author: "Sarah Williams",
+    date: "Dec 25, 2025",
+    readTime: "10 min read",
+  },
 ];
 
 export default function Home() {
