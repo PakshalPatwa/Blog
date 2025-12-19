@@ -2,17 +2,18 @@
 
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react'
+import Link from 'next/link';
 
 const loginpage = () => {
   const [form, setForm] = useState({
-    email: 'p1@gmail.com',
-    password: '12345'
+    email: '',
+    password: ''
   });
-  
+
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
- const submit = async (e: any) => {
+  const submit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
 
@@ -34,6 +35,9 @@ const loginpage = () => {
       // SAVE TOKEN
       localStorage.setItem("token", data.token);
 
+      // Dispatch event to update navbar
+      window.dispatchEvent(new Event("authChange"));
+
       alert("Login successful");
       router.push("/");
     } catch (err: any) {
@@ -44,29 +48,80 @@ const loginpage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-15 border border-white/10 bg-transparent p-6 rounded shadow">
-      <h2 className="text-2xl font-semibold mb-4">Blog Login</h2>
+    <div className="min-h-screen bg-linear-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden transform transition-all hover:scale-[1.01]">
+        <div className="p-8">
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-extrabold bg-linear-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+              Welcome Back
+            </h2>
+            <p className="text-gray-500 text-sm">
+              Sign in to continue to your blog
+            </p>
+          </div>
 
-      <form onSubmit={submit} className="flex flex-col gap-3">
+          <form onSubmit={submit} className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                required
+                type="email"
+                placeholder="you@example.com"
+                className="w-full px-4 py-3 text-gray-700 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all bg-gray-50 focus:bg-white"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+              />
+            </div>
 
-        <input required type="email"
-          placeholder="Email"
-          className="border p-2"
-          value={form.email}
-          onChange={e => setForm({ ...form, email: e.target.value })} />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                required
+                type="password"
+                placeholder="••••••••"
+                className="w-full px-4 py-3 text-gray-700 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all bg-gray-50 focus:bg-white"
+                value={form.password}
+                onChange={e => setForm({ ...form, password: e.target.value })}
+              />
+              <div className="flex justify-end mt-2">
+                <Link href="/forgot-password" className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+                  Forgot Password?
+                </Link>
+              </div>
+            </div>
 
-        <input required
-          type="password"
-          placeholder="Password"
-          className="border p-2"
-          value={form.password}
-          onChange={e => setForm({ ...form, password: e.target.value })} />
+            <button
+              disabled={loading}
+              className="w-full py-3 px-4 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-lg shadow-lg hover:from-indigo-700 hover:to-purple-700 focus:ring-4 focus:ring-indigo-300 transition-all transform hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Logging in...
+                </>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
 
-        <button disabled={loading}
-          className="bg-blue-600 text-white py-2 rounded">
-          {loading ? 'Logging...' : 'Login'}
-        </button>
-      </form>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+                Sign up
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

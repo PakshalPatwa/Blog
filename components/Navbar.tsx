@@ -2,14 +2,39 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import React, { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import React, { useState, useEffect } from "react";
 
 const Navbar = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const pathname = usePathname();
+    const router = useRouter();
+
+    useEffect(() => {
+        const checkAuth = () => {
+            const token = localStorage.getItem("token");
+            setIsLoggedIn(!!token);
+        };
+
+        checkAuth();
+
+        window.addEventListener("authChange", checkAuth);
+        return () => window.removeEventListener("authChange", checkAuth);
+    }, [pathname]);
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        setIsLoggedIn(false);
+        window.dispatchEvent(new Event("authChange"));
+        router.push("/login");
+    };
 
     const isActive = (path: string) => pathname === path;
+
+    if (
+        pathname === "/login" || pathname === "/signup" ||
+        pathname === "/forgot-password") return null;
 
     return (
         <nav className="bg-gray-50 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 shadow-sm">
@@ -17,10 +42,10 @@ const Navbar = () => {
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
                     <Link href="/" className="flex items-center space-x-2 group">
-                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center transform group-hover:rotate-6 transition-transform duration-300">
+                        <div className="w-9 h-9 rounded-lg bg-linear-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center transform group-hover:rotate-6 transition-transform duration-300">
                             <span className="text-white font-bold text-sm">MB</span>
                         </div>
-                        <span className="text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                        <span className="text-xl font-bold bg-linear-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                             MyBlog
                         </span>
                     </Link>
@@ -51,10 +76,27 @@ const Navbar = () => {
                     <div className="hidden md:flex items-center space-x-3">
                         <Link
                             href="/CreatePost"
-                            className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                            className="px-5 py-2 bg-linear-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
                         >
                             Create Blog
                         </Link>
+                        {isLoggedIn ? (
+                            <button
+                                onClick={handleLogout}
+                                className="px-5 py-2 bg-white text-gray-700 border border-gray-200 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+                            >
+                                Logout
+                            </button>
+                        ) : (
+                            pathname !== "/login" && (
+                                <Link
+                                    href="/login"
+                                    className="px-5 py-2 bg-white text-gray-700 border border-gray-200 text-sm font-semibold rounded-lg hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+                                >
+                                    Login
+                                </Link>
+                            )
+                        )}
                     </div>
 
                     {/* Mobile menu button */}
@@ -109,10 +151,31 @@ const Navbar = () => {
                             <Link
                                 href="/CreatePost"
                                 onClick={() => setIsMobileMenuOpen(false)}
-                                className="block px-4 py-2 mt-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold rounded-lg text-center"
+                                className="block px-4 py-2 mt-2 bg-linear-to-r from-indigo-600 to-purple-600 text-white text-sm font-semibold rounded-lg text-center"
                             >
                                 Create Blog
                             </Link>
+                            {isLoggedIn ? (
+                                <button
+                                    onClick={() => {
+                                        setIsMobileMenuOpen(false);
+                                        handleLogout();
+                                    }}
+                                    className="block w-full px-4 py-2 mt-2 bg-white text-gray-700 border border-gray-200 text-sm font-semibold rounded-lg text-center hover:bg-gray-50"
+                                >
+                                    Logout
+                                </button>
+                            ) : (
+                                pathname !== "/login" && (
+                                    <Link
+                                        href="/login"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                        className="block px-4 py-2 mt-2 bg-white text-gray-700 border border-gray-200 text-sm font-semibold rounded-lg text-center hover:bg-gray-50"
+                                    >
+                                        Login
+                                    </Link>
+                                )
+                            )}
                         </div>
                     </div>
                 )}
