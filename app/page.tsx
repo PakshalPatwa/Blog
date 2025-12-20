@@ -5,101 +5,78 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-const dummyPosts = [
-  {
-    id: 1,
-    title: "First Blog Post",
-    description: "This is a dummy description of a blog post",
-    image: "Portfolio1.png",
-    author: "John Doe",
-    date: "Dec 15, 2025",
-    readTime: "5 min read",
-  },
-  {
-    id: 2,
-    title: "Second Blog Post",
-    description: "More dummy content for the UI",
-    image: "Portfolio2.png",
-    author: "Jane Smith",
-    date: "Dec 14, 2025",
-    readTime: "7 min read",
-  },
-  {
-    id: 3,
-    title: "Blog Post 3",
-    description: "This is a dummy description of a blog post",
-    image: "Portfolio3.png",
-    author: "Mike Johnson",
-    date: "Dec 13, 2025",
-    readTime: "6 min read",
-  },
-  {
-    id: 4,
-    title: "Blog Post 4",
-    description: "More dummy content for the UI",
-    image: "Portfolio4.png",
-    author: "Sarah Williams",
-    date: "Dec 12, 2025",
-    readTime: "8 min read",
-  },
-  {
-    id: 5,
-    title: "Blog Post 5",
-    description: "More dummy content for the UI",
-    image: "Portfolio4.png",
-    author: "Sarah Williams",
-    date: "Dec 25, 2025",
-    readTime: "10 min read",
-  },
-];
+type Post = {
+  id: string | number;
+  title: string;
+  description: string;
+  image?: string;
+  author?: string;
+  date?: string;
+  readTime?: string;
+};
 
 export default function Home() {
-  const [allPosts, setAllPosts] = useState(dummyPosts);
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [showAll, setShowAll] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Store the data localStorage
-    const savedPosts = JSON.parse(localStorage.getItem("blogPosts") || "[]");
+    const fetchPosts = async () => {
+      try {
+        const res = await fetch("http://localhost:5000/api/posts");
 
-    // Create a map of posts by ID, prioritizing saved posts
-    const postsMap = new Map();
+        if (!res.ok) {
+          throw new Error("Failed to fetch posts");
+        }
 
-    // First add dummy posts
-    dummyPosts.forEach(post => postsMap.set(post.id, post));
+        const data = await res.json();
 
-    // Then add saved posts (this will overwrite dummy posts with same ID)
-    savedPosts.forEach((post: any) => postsMap.set(post.id, post));
+        const formattedPosts: Post[] = data.map((post: any) => ({
+          id: post._id,
+          title: post.title,
+          description: post.content,
+          image: post.image,
+          author: post.author,
+          date: post.date || new Date(post.createdAt).toDateString(),
+          readTime: post.readTime,
+        }));
 
-    // Convert back to array and sort by ID (descending for newest first)
-    const mergedPosts = Array.from(postsMap.values()).sort((a, b) => b.id - a.id);
+        setAllPosts(formattedPosts);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setAllPosts(mergedPosts);
+    fetchPosts();
   }, []);
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: string | number) => {
     const isConfirmed = confirm("Are you sure you want to delete this post?");
     if (!isConfirmed) return;
 
-    // 1. Remove from state (UI update)
-    const updatedPosts = allPosts.filter((post) => post.id !== id);
-    setAllPosts(updatedPosts);
+    try {
+      const res = await fetch(`http://localhost:5000/api/posts/${id}`, {
+        method: "DELETE",
+      });
 
-    // 2. Update localStorage
-    localStorage.setItem("blogPosts", JSON.stringify(updatedPosts));
-
-    alert("Post deleted successfully");
+      if (res.ok) {
+        const updatedPosts = allPosts.filter((post) => post.id !== id);
+        setAllPosts(updatedPosts);
+        localStorage.setItem("blogPosts", JSON.stringify(updatedPosts));
+        alert("Post deleted successfully");
+      } else {
+        alert("Failed to delete post");
+      }
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      alert("An error occurred while deleting the post");
+    }
   };
 
   const featuredPost = allPosts[0];
   const Articles = allPosts.slice(1);
-
-  if (!allPosts.length) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        No posts available
-      </div>
-    );
-  }
 
   return (
     <>
@@ -136,114 +113,124 @@ export default function Home() {
         </div>
 
         {/* Featured Post */}
-        <div id="featured" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow">
-            <div className="grid md:grid-cols-2">
+        {featuredPost ? (
+          <div id="featured" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow">
+              <div className="grid md:grid-cols-2">
 
-              {/* Image For Blog */}
-              <div className="relative flex items-center justify-center">
-                {featuredPost.image?.startsWith('data:image') ? (
+                {/* Image For Blog */}
+                <div className="relative flex items-center justify-center">
                   <img
-                    src={featuredPost.image}
+                    src={`http://localhost:5000/${featuredPost.image}`}
                     alt={featuredPost.title}
-                    className="w-fit h-50 flex items-center justify-center object-cover"
+                    className="w-fit h-50 text-black object-cover"
                   />
-                ) : (
-                  <Image
-                    src={`/assets/${featuredPost.image}`}
-                    alt={featuredPost.title}
-                    fill
-                    className="object-cover"
-                  />
-                )}
-                <div className="absolute top-4 left-4">
-                  <span className="px-3 py-1 bg-indigo-600 text-white text-xs font-semibold rounded-full">
-                    FEATURED
-                  </span>
+                  <div className="absolute top-4 left-4">
+                    <span className="px-3 py-1 bg-indigo-600 text-white text-xs font-semibold rounded-full">
+                      Letest
+                    </span>
+                  </div>
+                </div>
+
+                {/* Image For Blog Text */}
+                <div className="p-8">
+                  <div className="flex items-center justify-between gap-2 mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
+                        {featuredPost.author?.[0]}
+                      </div>
+                      <div className="text-sm">
+                        <p className="font-medium text-gray-900">{featuredPost.author}</p>
+                        <p className="text-gray-500">{featuredPost.date}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <button
+                        onClick={() => handleDelete(featuredPost.id)}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-br from-indigo-500 to-purple-500 text-white font-semibold rounded-lg hover:from-red-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862 a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m2 0H7m3-3h4a1 1 0 011 1v1H9V5a1 1 0 011-1z"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+                    {featuredPost.title}
+                  </h2>
+                  <p className="text-gray-600 mb-6 leading-relaxed">
+                    {featuredPost.description}
+                  </p>
+
+                  <Link
+                    href={`/post/${featuredPost.id}`}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                  >
+                    Read More
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
                 </div>
               </div>
-
-              {/* Image For Blog Text */}
-              <div className="p-8">
-                <div className="flex items-center justify-between gap-2 mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold">
-                      {featuredPost.author.charAt(0)}
-                    </div>
-                    <div className="text-sm">
-                      <p className="font-medium text-gray-900">{featuredPost.author}</p>
-                      <p className="text-gray-500">{featuredPost.date}</p>
-                    </div>
-                  </div>
-
-                  <div>
-                    <button
-                      onClick={() => handleDelete(featuredPost.id)}
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-br from-indigo-500 to-purple-500 text-white font-semibold rounded-lg hover:from-red-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
-                      <svg
-                        className="w-5 h-5"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862 a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7h6m2 0H7m3-3h4a1 1 0 011 1v1H9V5a1 1 0 011-1z"
-                        />
-                      </svg>
-                    </button>
-                  </div>
+            </div>
+          </div>
+        ) : (
+          !loading && (
+            <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+              <div className="bg-white rounded-2xl shadow-xl p-12 max-w-2xl mx-auto">
+                <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                  </svg>
                 </div>
-
-                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-                  {featuredPost.title}
-                </h2>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  {featuredPost.description}
+                <h2 className="text-3xl font-bold text-gray-900 mb-4">No Blogs Yet</h2>
+                <p className="text-gray-600 text-lg mb-8">
+                  We haven't published any articles yet. Check back soon for amazing content!
                 </p>
+              </div>
+            </div>
+          )
+        )}
 
-                <Link
-                  href={`/post/${featuredPost.id}`}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                >
-                  Read More
+        {/* Latest Articles */}
+        {Articles.length > 0 && (
+          <div id="all-posts" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="flex items-center justify-between">
+              <div className="mb-10">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Latest Articles</h2>
+                <p className="text-gray-600">Fresh content from our writers</p>
+              </div>
+
+              <div className="">
+                <button onClick={() => setShowAll(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg">
+                  View All
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </Link>
+                </button>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Latest Articles */}
-        <div id="all-posts" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="flex items-center justify-between">
-            <div className="mb-10">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Latest Articles</h2>
-              <p className="text-gray-600">Fresh content from our writers</p>
-            </div>
-
-            <div className="">
-              <button onClick={() => setShowAll(true)}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg">
-                View All
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {(showAll ? Articles : Articles.slice(0, 3)).map((post) => (
+                <PostCard key={post.id} post={post} onDelete={handleDelete} />
+              ))}
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {(showAll ? Articles : Articles.slice(0, 3)).map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
-          </div>
-
-        </div>
+        )}
 
         {/* Newsletter */}
         <div className="bg-linear-to-r from-indigo-600 to-purple-600 py-16">

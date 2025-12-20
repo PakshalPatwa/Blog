@@ -3,49 +3,6 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 
-const dummyPosts = [
-    {
-        id: 1,
-        title: "First Blog Post",
-        description: "This is a dummy description of a blog post",
-        image: "Portfolio1.png",
-        author: "John Doe",
-        date: "Dec 15, 2025",
-        readTime: "5 min read",
-        content: "Dive into the fascinating world of modern web development. This comprehensive guide explores the latest trends, best practices, and cutting-edge technologies shaping the future of digital experiences. From responsive design to performance optimization, we'll cover everything you need to know to build exceptional web applications."
-    },
-    {
-        id: 2,
-        title: "Second Blog Post",
-        description: "More dummy content for the UI",
-        image: "Portfolio2.png",
-        author: "Jane Smith",
-        date: "Dec 14, 2025",
-        readTime: "7 min read",
-        content: "Exploring innovative solutions and creative approaches to complex problems. This article delves into the art of problem-solving in the digital age, offering practical insights and proven strategies that can transform your development workflow and boost productivity."
-    },
-    {
-        id: 3,
-        title: "Blog Post 3",
-        description: "This is a dummy description of a blog post",
-        image: "Portfolio3.png",
-        author: "Mike Johnson",
-        date: "Dec 13, 2025",
-        readTime: "6 min read",
-        content: "Understanding the core principles that drive successful digital products. Learn how to create user-centric designs that not only look beautiful but also deliver exceptional functionality and user experience. We'll explore case studies and real-world examples."
-    },
-    {
-        id: 4,
-        title: "Blog Post 4",
-        description: "More dummy content for the UI",
-        image: "Portfolio4.png",
-        author: "Sarah Williams",
-        date: "Dec 12, 2025",
-        readTime: "8 min read",
-        content: "Mastering the craft of building scalable and maintainable applications. This in-depth guide covers architecture patterns, code organization, testing strategies, and deployment best practices that will elevate your development skills to the next level."
-    },
-];
-
 interface PageProps {
     params: Promise<{ id: string }>;
 }
@@ -55,7 +12,7 @@ const EditPostPage = ({ params }: PageProps) => {
     const router = useRouter();
 
     const [title, setTitle] = useState("");
-    const [desc, setDesc] = useState("");
+    const [content, setContent] = useState("");
     const [author, setAuthor] = useState("");
     const [date, setDate] = useState("");
     const [readTime, setReadTime] = useState("");
@@ -64,28 +21,42 @@ const EditPostPage = ({ params }: PageProps) => {
     const [image, setImage] = useState<string | null>(null);
 
     useEffect(() => {
-        // Load post data
-        const savedPosts = JSON.parse(localStorage.getItem("blogPosts") || "[]");
+        const fetchPost = async () => {
+            try {
+                const res = await fetch(`http://localhost:5000/api/posts/${id}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setTitle(data.title);
+                    setContent(data.content || "");
+                    setAuthor(data.author || "");
 
-        // Priority: Check savedPosts first (user edits), then dummyPosts.
-        let foundPost = savedPosts.find((p: any) => p.id === Number(id));
-        if (!foundPost) {
-            foundPost = dummyPosts.find((p: any) => p.id === Number(id));
-        }
+                    // Use date from API if available, otherwise format createdAt
+                    if (data.date) {
+                        setDate(data.date);
+                    } else if (data.createdAt) {
+                        const dateObj = new Date(data.createdAt);
+                        const formattedDate = dateObj.toISOString().split('T')[0];
+                        setDate(formattedDate);
+                    } else {
+                        setDate("");
+                    }
 
-        if (foundPost) {
-            setTitle(foundPost.title);
-            setDesc(foundPost.description);
-            setAuthor(foundPost.author);
-            setDate(foundPost.date);
-            setReadTime(foundPost.readTime);
-            setPreview(foundPost.image);
-            setImage(foundPost.image);
-        } else {
-            alert("Post not found");
-            router.push("/");
+                    setReadTime(data.readTime || "");
+                    setImage(data.image || "");
+                    setPreview(data.image ? `http://localhost:5000/${data.image}` : "");
+                } else {
+                    alert("Post not found");
+                    router.push("/");
+                }
+            } catch (error) {
+                console.error("Error fetching post:", error);
+            }
+        };
+
+        if (id) {
+            fetchPost();
         }
-    }, [id, router]);
+    }, [id]);
 
     const handleImage = (e: any) => {
         const selected = e.target.files?.[0];
@@ -100,35 +71,40 @@ const EditPostPage = ({ params }: PageProps) => {
         }
     };
 
-    const handleSubmit = () => {
-        if (!title || !desc || !author || !date || !readTime) {
-            alert("Please fill in all fields");
+    const handleSubmit = async () => {
+        if (!title || !content || !author || !date || !readTime) {
+            alert("Please fill in all required fields");
             return;
         }
 
-        const existingPosts = JSON.parse(localStorage.getItem("blogPosts") || "[]");
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("content", content);
+        formData.append("author", author);
+        formData.append("date", date); // Added date
+        formData.append("readTime", readTime); // Added readTime
 
-        // Remove existing version of this post from localStorage if it exists
-        const otherPosts = existingPosts.filter((p: any) => p.id !== Number(id));
+        if (file) {
+            formData.append("image", file);
+        }
 
-        const updatedPost = {
-            id: Number(id),
-            title,
-            description: desc,
-            image: preview || "Portfolio1.png",
-            author,
-            date,
-            readTime,
-            content: desc, // Keeping simple for now
-        };
+        try {
+            const res = await fetch(`http://localhost:5000/api/posts/${id}`, {
+                method: "PUT",
+                body: formData,
+            });
 
-        // Add updated post to the beginning
-        const updatedPosts = [updatedPost, ...otherPosts];
-
-        localStorage.setItem("blogPosts", JSON.stringify(updatedPosts));
-
-        alert("Blog Updated Successfully!");
-        router.push("/");
+            if (res.ok) {
+                alert("Blog Updated Successfully!");
+                router.push(`/post/${id}`);
+            } else {
+                const errorData = await res.json();
+                alert(`Failed to update post: ${errorData.message || res.statusText}`);
+            }
+        } catch (error) {
+            console.error("Error updating post:", error);
+            alert("An error occurred while updating the post");
+        }
     };
 
     return (
@@ -156,11 +132,11 @@ const EditPostPage = ({ params }: PageProps) => {
             />
 
             <textarea
-                placeholder="Description"
-                rows={5}
+                placeholder="Content"
+                rows={10}
                 className="w-full p-3 border rounded"
-                value={desc}
-                onChange={(e) => setDesc(e.target.value)}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
             />
 
             <input
@@ -190,11 +166,9 @@ const EditPostPage = ({ params }: PageProps) => {
             <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">Current Image</label>
                 <div className="h-40 w-full relative bg-gray-100 rounded overflow-hidden">
-                    {preview && (preview.startsWith('data:image') ? (
+                    {preview && (
                         <img src={preview} className="w-full h-full object-cover" alt="Preview" />
-                    ) : (
-                        <img src={`/assets/${preview}`} className="w-full h-full object-cover" alt="Preview" />
-                    ))}
+                    )}
                 </div>
             </div>
 

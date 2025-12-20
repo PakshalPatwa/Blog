@@ -2,51 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
-import { use } from 'react';
-
-const dummyPosts = [
-  {
-    id: 1,
-    title: "First Blog Post",
-    description: "This is a dummy description of a blog post",
-    image: "Portfolio1.png",
-    author: "John Doe",
-    date: "Dec 15, 2025",
-    readTime: "5 min read",
-    content: "Dive into the fascinating world of modern web development. This comprehensive guide explores the latest trends, best practices, and cutting-edge technologies shaping the future of digital experiences. From responsive design to performance optimization, we'll cover everything you need to know to build exceptional web applications."
-  },
-  {
-    id: 2,
-    title: "Second Blog Post",
-    description: "More dummy content for the UI",
-    image: "Portfolio2.png",
-    author: "Jane Smith",
-    date: "Dec 14, 2025",
-    readTime: "7 min read",
-    content: "Exploring innovative solutions and creative approaches to complex problems. This article delves into the art of problem-solving in the digital age, offering practical insights and proven strategies that can transform your development workflow and boost productivity."
-  },
-  {
-    id: 3,
-    title: "Blog Post 3",
-    description: "This is a dummy description of a blog post",
-    image: "Portfolio3.png",
-    author: "Mike Johnson",
-    date: "Dec 13, 2025",
-    readTime: "6 min read",
-    content: "Understanding the core principles that drive successful digital products. Learn how to create user-centric designs that not only look beautiful but also deliver exceptional functionality and user experience. We'll explore case studies and real-world examples."
-  },
-  {
-    id: 4,
-    title: "Blog Post 4",
-    description: "More dummy content for the UI",
-    image: "Portfolio4.png",
-    author: "Sarah Williams",
-    date: "Dec 12, 2025",
-    readTime: "8 min read",
-    content: "Mastering the craft of building scalable and maintainable applications. This in-depth guide covers architecture patterns, code organization, testing strategies, and deployment best practices that will elevate your development skills to the next level."
-  },
-];
+import React, { useEffect, useState, use } from 'react';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -54,19 +10,46 @@ interface PageProps {
 
 export default function PostPage({ params }: PageProps) {
   const { id } = use(params);
-  const [allPosts, setAllPosts] = useState(dummyPosts);
   const [post, setPost] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load posts from localStorage
-    const savedPosts = JSON.parse(localStorage.getItem("blogPosts") || "[]");
-    const combinedPosts = [...savedPosts, ...dummyPosts];
-    setAllPosts(combinedPosts);
+    const fetchPost = async () => {
+      try {
+        const res = await fetch(`http://localhost:5000/api/posts/${id}`);
+        if (!res.ok) {
+          throw new Error("Post not found");
+        }
+        const data = await res.json();
+        setPost({
+          id: data._id,
+          title: data.title,
+          description: data.content,
+          image: data.image,
+          author: data.author,
+          date: data.date || new Date(data.createdAt).toDateString(),
+          readTime: data.readTime,
+        });
+      } catch (error) {
+        console.error("Error fetching post:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    // Find the post by ID
-    const foundPost = combinedPosts.find((p: any) => p.id === Number(id));
-    setPost(foundPost);
+    if (id) {
+      fetchPost();
+    }
   }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -112,21 +95,11 @@ export default function PostPage({ params }: PageProps) {
         <div className="w-full h-full text-white flex flex-col relative overflow-hidden group">
           {/* Background Image */}
           <div className="absolute inset-0 z-0">
-            {post.image?.startsWith('data:image') ? (
-              <img
-                src={post.image}
-                alt={post.title}
-                className="w-full h-full object-cover opacity-60 transition-transform duration-700"
-              />
-            ) : (
-              <Image
-                src={`/assets/${post.image}`}
-                alt={post.title}
-                fill
-                className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
-                priority
-              />
-            )}
+            <img
+              src={`http://localhost:5000/${post.image}`}
+              alt={post.title}
+              className="w-full h-full object-cover opacity-60 transition-transform duration-700"
+            />
             <div className="absolute inset-0 bg-linear-to-b from-zinc-900/30 via-zinc-900/60 to-zinc-900" />
           </div>
 
@@ -144,7 +117,9 @@ export default function PostPage({ params }: PageProps) {
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 font-serif">
                 {post.title}
               </h1>
-
+              <p className="text-white mb-3 line-clamp-2 text-sm">
+                {post.description}
+              </p>
               <div className="flex items-center gap-4 mb-8">
                 <div className="w-12 h-12 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center border border-white/20">
                   <span className="text-xl font-bold">{post.author.charAt(0)}</span>
